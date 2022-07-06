@@ -1,1 +1,0 @@
-# SMJminjeong.github.io
