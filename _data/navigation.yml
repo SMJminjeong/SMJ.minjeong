@@ -4,6 +4,17 @@ main:
     url: https://mmistakes.github.io/minimal-mistakes/docs/quick-start-guide/
   - title: "Category"
     url: /about/
+  - title: Database
+    children:
+      - title: "Oracle"
+        url: oracle/
+        category: "oracle"
+      - title: "MS-SQL"
+        url: mssql/
+        category: "mssql"
+      - title: "MariaDB"
+        url: mariadb/
+        category: "mariadb"
   # - title: "Sample Posts"
   #   url: /year-archive/
   # - title: "Sample Collections"
