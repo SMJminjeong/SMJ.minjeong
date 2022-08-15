@@ -8,7 +8,7 @@ brew install mysql : mySQL 설치
 	mysql.server start : mySQL 서버 시작 -> SUCCESS! 떠야함
 	비밀번호 설정 할 것인지 묻는 질문 - y
 	비밀번호 설정 (단계별로 0/1/2)
-	나는 1단계 Mysql123!로 설정 완료
+	나는 1단계 ********로 설정 완료
 	나오는 모든 질문 y로 입력
 	
 	mysql -uroot -p비밀번호  //비밀번호 입력 후 접속
