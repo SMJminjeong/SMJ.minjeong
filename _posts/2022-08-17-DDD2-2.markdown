@@ -1,0 +1,448 @@
+---
+layout: post
+title:  "DDD(도메인 주도 설계) 2. 시스템 특유의 값을 나타내기 위한 ‘값 객체’"
+date:   2022-08-17 21:22:54 +0900
+categories: jekyll update
+---
+### 2.3 값 객체가 되기 위한 기준
+
+- 가능한 한 모든 속성을 값 객체로 만든다면?
+    
+    ```jsx
+    //가능한 모든 속성을 값 객체로 갖는 FullName 클래스
+    public class FullName
+    {
+     private final FirstName firstName;
+     private final LastName lastName;
+     public FullName(FirstName firstName, LastName lastName) {
+     this.firstName = firstName;
+     this.lastName = lastName;
+     }
+    
+     (...생략...)
+    }
+    
+    //이름을 나타내는 값 객체
+    public class FirstName
+    {
+     private String value;
+     public FirstName(String value) {
+     if (StringUtils.isEmpty(value)) {
+     throw new IllegalArgumentException("최소 1글자 이상이어야 함" + value);
+     }
+     this.value = value;
+     }
+    }
+    
+    //성을 나타내는 값 객체
+    public class LastName
+    {
+     private String value;
+     public LastName(String value) {
+     if (StringUtils.isEmpty(value)) {
+     throw new IllegalArgumentException("최소 1글자 이상이어야 함" + value);
+     }
+     this.value = value;
+     }
+    }
+    ```
+    
+- ‘규칙이 존재하는가’ & ‘낱개로 다루어야 하는가’
+    - 성과 이름에서 사용 가능한 문자에 제약이 있다면???
+        
+        > 값 객체로 정의하지 않고도 규칙을 강제할 수 있다.
+        > 
+        
+        ```jsx
+        //FullName에 규칙을 추가하기
+        public class FullName {
+         private final String firstName;
+         private final String lastName;
+         public FullName(String firstName, String lastName) {
+         if (firstName == null)
+         throw new IllegalArgumentException("firstName: " + firstName);
+         if (lastName == null)
+         throw new IllegalArgumentException("lastName: " + lastName);
+         if (!validateName(firstName))
+         throw new IllegalArgumentException("lastName: " + lastName);
+         if (!validateName(lastName))
+         throw new IllegalArgumentException("lastName: " + lastName);
+         this.firstName = firstName;
+         this.lastName = lastName;
+         }
+        
+         public boolean validateName(String value) {
+         return value.matches("^[a-zA-Z]+$");
+         }
+        
+         (...생략...)
+        }
+        ```
+        
+        속성을 값 객체로 만들기로 했다면 ??
+        
+        ▷ 성과 이름을 별도의 타입으로 나눌지 말지
+        
+        ▷ 성과 이름을 따로 다룰 필요 없다면 하나의 타입으로 다룰 수 있다.
+        
+        ```jsx
+        //이름을 나타내는 클래스
+        public class Name {
+         private final String value;
+         public Name(String value) {
+         if (value == null)
+         throw new IllegalArgumentException("value: " + value);
+         if (!value.matches("^[a-zA-Z]+$"))
+         throw new IllegalArgumentException("허가되지 않은 문자가 사용됨: " + value);
+         this.value = value;
+         }
+        }
+        
+        //Name클래스를 이용해 구현한 FullName 클래스
+        public class FullName
+        {
+         private final Name firstName;
+         private final Name lastName;
+         public FullName2(Name firstName, Name lastName) {
+         if (firstName == null)
+         throw new IllegalArgumentException("firstName: " + firstName);
+         if (lastName == null)
+         throw new IllegalArgumentException("lastName: " + lastName);
+         this.firstName = firstName;
+         this.lastName = lastName;
+         }
+        
+         (...생략...)
+        }
+        
+        ```
+        
+        > 값 객체로 정의할 필요를 판단하는 것이 중요하다.
+        값 객체로 정의할 만한 가치가 있는 개념을 구현 중 발견했다면 도메인 모델로 피드백해야 한다.
+        >
+
+### 2.4 행동이 정의된 값 객체
+
+- 값 객체 중요한 점 = 독자적인 행위를 정의할 수 있다.
+    
+    ```jsx
+    //돈[액수, 화폐단위]
+    //액수와 화폐 단위를 속성으로 하는 돈 객체
+    public class Money {
+     private BigDecimal amount;
+     private String currency;
+     public Money(BigDecimal amount, String currency) {
+     if (currency == null)
+     throw new IllegalArgumentException(currency);
+     this.amount = amount;
+     this.currency = currency;
+     }
+    }
+    
+    //값 객체는 데이터만으로 저장하는 컨테이너 뿐 아니라 행동도 가질 수 있는 객체이다.
+    
+    //금액을 더하는 처리를 구현하기
+    public class Money {
+     private BigDecimal amount;
+     private String currency;
+     (...생략...)
+     public Money add(Money arg) {
+     if (arg == null)
+     throw new IllegalArgumentException("arg : " + arg);
+     if (currency != arg.currency)
+     throw new IllegalArgumentException("화폐 단위가 다름: " + currency + ", " + arg.currency);
+     return new Money(amount.add(arg.getAmount()), currency);
+     }
+    }
+    //화폐단위가 일치한지 확인
+    //값 객체는 불변이므로 계산된 결과는 새로운 인스턴스로 반환
+    
+    //계산 결과 받기
+    Money myMoney = new Money(new BigDecimal(1000), "KRW");
+    Money allowance = new Money(new BigDecimal(3000), "KRW");
+    Money result = myMoney.add(allowance);
+    
+    //원시 타입끼리의 덧셈
+    BigDecimal myMoney = new BigDecimal(1000);
+    BigDecimal allowance = new BigDecimal(3000);
+    BigDecimal result = myMoney.add(allowance);
+    
+    //화폐 단위가 일치하지 않는 경우 - 예외 발생(잘못된 계산 예방)
+    Money krw = new Money(new BigDecimal(1000), "KRW");
+    Money usd = new Money(new BigDecimal(10), "USD");
+    Money result = krw.add(usd); // 예외 발생
+    ```
+    
+    - 버그 = 착각해서 발생하는 경우가 많다.
+        - 계산과정에서 규칙 명시, 계산 수행, 규칙적인 오류를 방지 할 수 있다면 활용하는 것이 좋다.
+    
+    > 값 객체는 결코 데이터를 담는 것이 목적인 구조체가 아니다. 값 객체는 데이터와 더불어 그 데이터에 대한 행동을 한 곳에 모아둠으로써 자신만의 규칙을 갖는 도메인 객체가 된다.
+    > 
+    > 
+    > ![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/46f7733b-64d7-4409-bfe5-ee8bf7b430dc/Untitled.png)
+    > 
+
+###
+
+### 2.4.1 정의되지 않았기 때문에 알 수 있는 것
+
+- 객체는 자신에게 정의되지 않은 행위는 할 수 없다.
+    
+    = 객체에 정의된 행위를 통해 이 객체가 어떤 일을 할 수 있는지 알 수 있다.
+
+### 2.5 값 객체를 도입했을 때의 장점
+
+- 시스템 고유의 값을 객체 → 정의하는 클래스 갯수 증가
+    - 모듈성을 위해 코드를 적절한 크기로 나누고 분산시켜 정의하지 않는 경우
+        
+        벽을 넘기 위한 용기를 내는데 도움이 되도록 값 객체를 도입했을 때의 장점
+        
+    - 값 객체의 장점
+        1. 표현력이 증가한다.
+        2. 무결성이 유지된다.
+        3. 잘못된 대입을 방지한다.
+        4. 로직이 코드 이곳저곳에 흩어지는 것을 방지한다.
+
+### 2.5.1 표현력의 증가
+
+- 공산품의 로트번호, 일련번호, 제품번호 등 식별을 위한 다양한 번호
+    - 만약 제품번호를 원시타입으로 나타낸 프로그램은??
+        
+        ```jsx
+        //원시 타입으로 정의된 제품번호
+        String modelNumber = "a20421-100-1";
+        //원시 타입인 문자열 타입의 변수
+        //modelNumber라는 변수를 갑자기 맞닥뜨리면 제품번호으 내용이 어떤 것인지 예측하기 어렵다.
+        
+        //제품번호의 내용을 알 수 없다.
+        void method(String modelNumber) { // 타입이 문자열이라는 것만 알 수 있다.
+         (...생략...)
+        }
+        ```
+        
+    - 만약 값 객체를 사용했다면??
+        
+        ```jsx
+        //값 객체로 나타낸 제품번호
+        public class ModelNumber {
+         private String productCode;
+         private String branch;
+         private String lot;
+         public ModelNumber(String productCode, String branch, String lot) {
+         if (productCode == null)
+         throw new IllegalArgumentException("productCode: " + productCode);
+         if (branch == null)
+         throw new IllegalArgumentException("branch: " + branch);
+         if (lot == null)
+         throw new IllegalArgumentException("lot: " + lot);
+         this.productCode = productCode;
+         this.branch = branch;
+         this.lot = lot;
+         }
+         public String toString() {
+         return productCode + "-" + branch + "-" + lot;
+         }
+        }
+        //ModelNumber 클래스를 통해 제품코드(productCode)/지점번호(branch)/로트번호(lot)로 구성됨을 알 수 있다.
+        ```
+        
+        > 값 객체는 자기 정의를 통해 자신이 무엇인지에 대한 정보를 제공하는 자기 문서화를 돕는다.
+        >
+
+### 2.5.2 무결성 유지
+
+- 사용자처럼 시스템에서 각 값이 준수해야 할 규칙
+    - ‘사용자명은 세 글자 이상일 것’이라는 규칙이 있다면??
+        
+        ```jsx
+        //존재할 수 없는 값의 예
+        String userName = "me";
+        //'사용자명은 세글자 이상일 것'이라는 규칙을 위반하는 이상값이지만
+        //프로그램상 길이가 2인 문자열이 존재하는 데는 아무런 문제가 존재하지 않음
+        //컴파일러 관점에서 길이가 2인 문자열이 정상인 것은 당연한 일+프로그램 실행시 문제없이 동작
+        
+        //유효하지 않은 값을 허용하는 경우 값을 사용할 때 값이 항상 유효한지 확인 필요
+        ```
+        
+        ```jsx
+        //값을 사용하기 전 값이 유효한지 확인하기
+        if (userName.length() >= 3) {
+         // 유효한 값으로 처리를 계속한다.
+        } else {
+         throw new IllegalArgumentException("유효하지 않은 값");
+        }
+        ```
+        
+        - 값의 유효성 확인시 급한 불은 끌 수 있음
+            - 코드 여기저기에 유효성을 검사하는 코드가 반복 → 시스템 오류로 이어질 가능성 ↑
+                
+                값 객체를 이용 → 유효하지 않은 값을 처음부터 방지 가능
+
+### 2.5.3 잘못된 대입 방지하기
+
+- 잘못된 대입문의 사용
+    - 개발자라면 대입문의 사용은 일상적인 행위 → 잘못 사용하는 경우 존재
+        
+        ```jsx
+        //간단한 대입문의 예
+        User createUser(String name) {
+         User user = new User();
+         user.setId(name);
+         return user;
+        }
+        ```
+        
+        이 경우 User클래스의 id속성에 인자로 전달한 name의 값을 대입 → 올바르지 않음
+        
+        ※ 사용자명이 그대로 ID인 경우 / 이메일 주소처럼 별도의 값을 ID로 삼는 경우
+        
+        컨텍스트 없이 올바른 코드인지 판단 어려움 → 시스템의 동작명세를 깊이 파악
+        
+        - 값 객체를 통해 정의하면 실현 가능
+            
+            ```jsx
+            //사용자 ID를 나타내는 값 객체
+            public class UserId {
+             private final String value;
+             public UserId(String value) {
+             if (value == null)
+             throw new IllegalArgumentException("value : " + value);
+            
+             this.value = value;
+             }
+            }
+            
+            //사용자명을 나타내는 값 객체
+            public class UserName {
+             private final String value;
+             public UserName(String value) {
+             if (value == null)
+             throw new IllegalArgumentException("value : " + value);
+            
+             this.value = value;
+             }
+            }
+            ```
+            
+            UserId와 UserName 클래스는 원시 타입(문자열)을 래핑한 단순한 객체
+            
+            ```jsx
+            //값 객체를 사용하도록 수정된 User클래스
+            @Getter
+            @Setter
+            public class User {
+             private UserId id;
+             private UserName name;
+            }
+            
+            //원시 타입 대신 값 객체를 사용한 예
+            User createUser(UserName name) {
+             User user = new User();
+             user.setId(name); // 컴파일 에러 발생
+             return user;
+            }
+            ```
+            
+            함수의 인자로 문자열이 아닌 UserName 객체를 전달받음
+            
+            User클래스의 id 속성은 UserId 타입의 값 객체 
+            
+            → 대입을 시도한 name은 UserName 타입의 변수
+            
+            → 컴파일러는 대입문에서 타입 불일치를 발견해 에러를 발생
+            
+            ※ 에러는 실행 전에 발견하는 것이 낫다. 값 객체를 정의해 타입 시스템에서 의존하면 예측하기 어려운 에러가 숨을 곳을 줄일 수 있다. 
+            
+            ※ 정적 타이핑 프로그래밍 언어 / 타입 헌팅 기능 활용!
+
+### 2.5.4 로직을 한곳에 모아두기
+
+- DRY원칙 : 코드 중복을 방지하는 일이 매우 중요
+    - 값 객체를 적용하지 않은 사용자 생성처리에는 입력값 검증 과정 필요
+        
+        ```jsx
+        //입력값 검증이 포함된 사용자 생성 처리
+        void createUser(String name) {
+         if (name == null)
+         throw new IllegalArgumentException("value : " + name);
+         if (name.length() < 3)
+         throw new IllegalArgumentException("사용자명은 3글자 이상어야함. value: " + name);
+        
+         user user = new User(name);
+        
+         (...생략...)
+        
+        }
+        ```
+        
+        - 만약 사용자 정보를 수정하는 처리가 이부분 외에도 있다면?
+            
+            ```jsx
+            //사용자 정보 수정 시에도 같은 검증 필요
+            void updateUser(String id, String name) {
+             if (name == null)
+             throw new IllegalArgumentException("value : " + name);
+             if (name.length() < 3)
+             throw new IllegalArgumentException("사용자명은 3글자 이상어야함. value: " + name);
+             (...생략...)
+            }
+            ```
+            
+        
+        인자를 검증하는 코드가 사용자 정보 수정시 중복 → 규칙이 수정됐을 때 드러남
+        
+        - 만약 ‘사용자명의 최소 길이’가 변경된 상황이라면?
+            
+            사용자를 신규 생성하는 리스트 + 정보 수정에 해당하는 리스트 모두 수정 필요
+            
+            → 이런 종류의 코드는 이 외에도 시스템 어딘가에 숨어있을 가능성 존재
+            
+            ```jsx
+            //값 객체 안에 정리된 규칙
+            public class UserName {
+             private final String value;
+             public UserName(String value) {
+             if (value == null)
+             throw new IllegalArgumentException("value : " + value);
+             if (value.length() < 3)
+             throw new IllegalArgumentException("사용자명은 3글자 이상어야함. value: " + value);
+            
+             this.value = value;
+             }
+            }
+            ```
+            
+            → 값 객체를 정의해 그 안에 규칙을 정리하면 실현 가능
+            
+            ```jsx
+            //값 객체를 이용해 구현한 사용자 신규 생성과 사용자 정보 수정
+            void createUser(String name) {
+             UserName userName = new UserName(name);
+             User user = new User(userName);
+            
+             (...생략...)
+            }
+            void updateUser(String id, String name) {
+             UserName userName = new UserName(name);
+             (...생략...)
+            }
+            ```
+            
+            규칙은 UserName클래스 안에 기술 → 수정 시 UserName클래스 수정
+            
+            ▷ 소프트웨어가 변경을 받아들일 수 있는 유연성
+
+### 2.6 정리
+
+- 값 객체를 사용할 때의 구체적인 장점 / 본질
+    - 값 객체의 개념 = ‘시스템 고유의 값을 만드는’ 단순한 것
+        
+        도메인에는 다양한 규칙이 포함 
+        
+        → 값 객체를 정의 : 규칙을 값 객체 안에 기술해 코드 자체가 문서의 역할
+        
+        → 도메인의 개념을 객체로 정의할 때는 우선 값 객체에 적합한 개념인지 검토
+
+[jekyll-docs]: https://jekyllrb.com/docs/home
+[jekyll-gh]:   https://github.com/jekyll/jekyll
+[jekyll-talk]: https://talk.jekyllrb.com/
