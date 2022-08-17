@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "DDD(도메인 주도 설계)"
+title:  "DDD(도메인 주도 설계) 1. 도메인 주도 설계란?"
 date:   2022-08-17 21:22:54 +0900
 categories: jekyll update
 ---
