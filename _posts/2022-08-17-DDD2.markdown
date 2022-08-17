@@ -1,0 +1,202 @@
+---
+layout: post
+title:  "DDD(도메인 주도 설계) 2. 시스템 특유의 값을 나타내기 위한 ‘값 객체’"
+date:   2022-08-17 21:22:54 +0900
+categories: jekyll update
+---
+### 2.1 값 객체란?
+
+- 원시 데이터 타입 → 시스템 특유의 값을 정의 필요
+    - 값 객체 : 시스템 특유의 값을 표현하기 위해 정의하는 객체
+    
+    ```jsx
+    //[원시 데이터 타입이 값으로 '성명'나타내기]
+    String fullName = "naruse mananobu";
+    System.out.println(fullName); // naruse mananobu라는 값을 출력
+    
+    //[이름 중 성씨만 출력하기]
+    String fullName = "naruse mananobu";
+    String[] tokens = fullName.split(" "); // ["naruse", "mananobu"]와 같은 배열이 만들어짐
+    String lastName = tokens[0];
+    System.out.println(lastName); // naruse가 출력됨
+    
+    //[성씨만 출력할 때 문제가 생기는 경우]
+    String fullName = "john smith";
+    String[] tokens = fullName.split(" "); // ["john", "smith"]와 같은 배열이 만들어짐
+    String lastName = tokens[0];
+    System.out.println(lastName); // john이 출력됨
+    
+    //[이름을 나타내기 위한 FullName 클래스]
+    @Getter
+    public class FullName {
+     private String firstName;
+     private String lastName;
+     public FullName(String firstName, String lastName) {
+     this.firstName = firstName;
+     this.lastName = lastName;
+     }
+    }
+    
+    //[FullName 클래스의 lastName 프로퍼티 사용하기]
+    FullName fullName = new FullName("masanobu", "naruse");
+    System.out.println(fullName.getLastName()); // naruse가 출력됨
+    ```
+    
+    ![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/a4872a03-46de-4d78-b2e7-61b04ec41954/Untitled.png)
+    
+###
+
+### 2.2 값의 설정과 값 객체 구현
+
+- 값의 성질은?
+    - 변하지 않는다 / 주고받을 수 있다 / 등가성을 비교할 수 있다
+
+###
+
+### 2.2.1 값의 불변성
+
+- 값은 변화하지 않는 성질을 갖는다.
+    
+    ```jsx
+    //값을 수정하는 예
+    String greet = "안녕하세요";
+    System.out.println(greet); // 안녕하세요가 출력됨
+    greet = "Hello";
+    System.out.println(greet); // Hello가 출력됨
+    
+    //값을 수정하는 의사 코드
+    String greet = "안녕하세요";
+    greet.changeTo("Hello"); // 실제로는 이런 메서드가 없다.
+    System.out.println("greet"); // Hello가 출력된다
+    
+    "안녕하세요".changeTo("Hello"); // 실제 이런 메서드는 없다.
+    System.out.println("안녕하세요"); // Hello가 출력된다.
+    
+    //값이 수정 가능하다는 성질을 이용한 코드
+    "안녕하세요".changeTo("Hello"); // 실제로는 이런 메서드가 없다.
+    System.out.println("안녕하세요"); // Hello가 출력된다
+    
+    //일반적으로 볼 수 있는 값 수정
+    String fullName = new FullName("masanobu", "naruse");
+    fullName.changeLastName("sato")
+    ```
+    
+- 불변하는 값의 장점
+    - 버그!
+        - 객체를 생성하고 메서드에 인자로 넘기니 자기도 모르는 사이에 상태가 수정되어 의도하지 않은 동작을 보이거나 버그를 일으킴
+            
+            = 상태가 변화가 원인인 버그!
+            
+            ▷ 버그를 방지하기 위해서는 상태를 변화하지 않게 하는 것
+            
+            객체의 상태가 변화하지 않는다면 값이 변하는 상황을 고려할 필요가 없기 때문에 병렬 및 병행 처리를 비교적 쉽게 구현가능
+            
+            그 외에도 컴퓨터 메모리가 부족할 경우 객체를 캐싱하는 전략
+            
+            → 완전히 같은 상태를 갖는 객체를 여러 개 준비할 필요 없이 하나의 객체를 캐시로 돌려쓸 수 있어 리소스 절약 가능
+            
+            ▷ 상태가 변하지 않는 객체의 단점 존재
+            
+            객체의 일부 값만 바꾸고 싶을 때도 객체를 아예 새로 생성해야 한다는 점
+            
+            > 가변 객체를 불변 객체로 바꾸는 것 > 불변 객체를 가변 객체로 만드는 것
+            
+###
+
+### 2.2.2 교환 가능하다.
+
+- 값을 수정하지 않고서도 목적을 달성하는 소프트웨어를 만들기는 어렵다.
+    
+    ```jsx
+    //평소에 우리가 값을 수정하는 방법
+    // 숫자값 수정
+    int num = 0;
+    num = 1;
+    // 문자값 수정
+    char c = '0';
+    c = 'b';
+    // 문자열 수정
+    String greet = "안녕하세요";
+    greet = "hello";
+    
+    //값 객체를 수정하는 방법
+    FullName fullName = new FullName("masanobu", "naruse");
+    fullName = new FullName("masanobu", "sato"); //대입문을 통한 교환 외에 수단으로 수정 불가
+    ```
+###
+
+### 2.2.3 등가성 비교 가능
+
+- 숫자끼리 혹은 문자끼리처럼 같은 종류의 값끼리 비교 가능
+    
+    ```jsx
+    //같은 종류의 값끼리 비교하기
+    System.out.println(0 == 0); // true
+    System.out.println(0 == 1); // false
+    System.out.println('a' == 'a'); // true
+    System.out.println('a' == 'b'); // false
+    System.out.println("hello" == "hello"); // true
+    System.out.println("hello" == "안녕하세요"); // false
+    //값 객체도 이와 마찬가지로 값 객체를 구성하는 속성(인스턴스 변수)을 통해 비교
+    
+    //값 객체 간의 비교
+    FullName nameA = new FullName("masanobu", "naruse");
+    FullName nameB = new FullName("masanobu", "naruse");
+    // 두 인스턴스를 비교
+    System.out.println(nameA.equals(nameB)); // 인스턴스를 구성하는 속성이 같으므로 true
+    
+    //속성값을 꺼내 직접 비교하기
+    FullName nameA = new FullName("masanobu", "naruse");
+    FullName nameB = new FullName("john", "smith");
+    
+    boolean compareResult = nameA.getFirstName() == nameB.getFirstName()
+     && nameA.getLastName() == nameB.getLastName();
+    System.out.println(compareResult);
+    
+    //값끼리 직접 비교하기
+    FullName nameA = new FullName("masanobu", "naruse");
+    FullName nameB = new FullName("john", "smith");
+    
+    boolean compareResult = nameA.equals(nameB);
+    System.out.println(compareResult);
+    
+    // 연산자들 오버라이드를 활용할 수도 있다.
+    boolean compareResult2 = nameA == nameB;
+    System.out.println(compareResult2);
+    
+    //비교 메소드를 제공하는 FullName클래스
+    @Getter
+    public class FullName {
+     private String firstName;
+     private String lastName;
+    public FullName(String firstName, String lastName) {
+     this.firstName = firstName;
+     this.lastName = lastName;
+     }
+     public static void main(String[] args) {
+     FullName fullName = new FullName("masanobu", "naruse");
+     System.out.println(fullName.getLastName()); // naruse가 출력됨
+     }
+     @Override
+     public boolean equals(Object o) { //equals 메서드를 써서 값 비교
+     if (this == o) return true;
+     if (o == null || getClass() != o.getClass()) return false;
+     FullName fullName = (FullName) o;
+     return Objects.equals(firstName, fullName.firstName) &&
+     Objects.equals(lastName, fullName.lastName);
+     }
+     @Override
+     public int hashCode() {
+     return Objects.hash(firstName, lastName);
+     }
+    }
+    ```
+    
+    - 
+- 속성을 추가해도 수정이 필요 없다.
+    
+    속성을 직접 꺼내 비교해야 할 경우 새로 추가된 속성이 생겻을 때 비교하는 코드를 모두 수정해야 함
+
+[jekyll-docs]: https://jekyllrb.com/docs/home
+[jekyll-gh]:   https://github.com/jekyll/jekyll
+[jekyll-talk]: https://talk.jekyllrb.com/
