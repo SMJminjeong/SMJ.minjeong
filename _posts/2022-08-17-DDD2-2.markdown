@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "DDD(도메인 주도 설계) 2. 시스템 특유의 값을 나타내기 위한 ‘값 객체’"
+title:  "DDD(도메인 주도 설계) 2. 시스템 특유의 값을 나타내기 위한 ‘값 객체’ 2"
 date:   2022-08-17 21:22:54 +0900
 categories: jekyll update
 ---
