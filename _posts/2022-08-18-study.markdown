@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "개인공부 내용"
+title:  "개인공부 내용 수정 전 (내용 등록 전)"
 date:   2022-08-18 21:22:54 +0900
 categories: jekyll update
 ---
