@@ -8,7 +8,7 @@ categories: jekyll update
 
 - 원시 데이터 타입 → 시스템 특유의 값을 정의 필요
     - 값 객체 : 시스템 특유의 값을 표현하기 위해 정의하는 객체
-    
+     
     ```jsx
     //[원시 데이터 타입이 값으로 '성명'나타내기]
     String fullName = "naruse mananobu";
